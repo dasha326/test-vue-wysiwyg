@@ -14,12 +14,13 @@
                 <button class="btn btn-primary" @click="addParagraph">
                     <SvgIcon name="tt"/>
                 </button>
-                <button class="btn btn-primary" @click="addParagraph">
+                <button class="btn btn-primary" @click="addImage">
                     <SvgIcon name="img"/>
                 </button>
-                <button class="btn btn-primary" @click="addParagraph">Скопировать HTML</button>
+                <button class="btn btn-link" @click="copyHTML">Скопировать HTML</button>
             </div>
-            <pre contenteditable="true" v-html="textValue" @blur="changeText($event.target)" @focus="rememberText"/>
+            <div class="content" contenteditable="true" v-html="textValue" @blur="changeText($event.target)" @focus="rememberText"/>
+            <TextAlert v-if="copyAlert" text="Текст успешно скопирован"/>
         </div>
     </main>
 </template>
@@ -28,12 +29,14 @@
 import {defineComponent, ref} from "vue";
 import text from "@/mock/text";
 import SvgIcon from "@/components/SvgIcon.vue";
+import TextAlert from "@/components/TextAlert.vue"
 
 export default defineComponent({
     name: 'App',
-    components: {SvgIcon},
+    components: {SvgIcon, TextAlert},
     setup(){
-        const textValue = ref(text);
+        const copyAlert = ref<boolean>(false);
+        const textValue = ref<string>(text);
         const textBefore = ref<string[]>([]);
         const textBeforeList = textBefore.value;
         const textNext = ref<string[]>([]);
@@ -52,10 +55,23 @@ export default defineComponent({
             textNextList.pop();
         }
 
-        function markupText(tag:string) {
-            const select = document.getSelection();
+        function markupText(tag: string, url?:string) {
+            const select = window.getSelection();
             if(select !== null) {
-                textValue.value = textValue.value.replace(select.toString(), `<${tag}>${select.toString()}</${tag}>`);
+                if(
+                    (select.toString().length > 0) &&
+                    (tag !== 'img')
+                ) {
+                    const parentTag = select.getRangeAt(0).startContainer.parentElement?.tagName;
+                    if(parentTag && parentTag !== 'DIV') {
+                        const previewTag = parentTag.toLowerCase();
+                        textValue.value = textValue.value.replace(select.toString(), `</${previewTag}><${tag}>${select.toString()}</${tag}><${previewTag}>`);
+                    } else {
+                        textValue.value = textValue.value.replace(select.toString(), `<${tag}>${select.toString()}</${tag}>`);
+                    }
+                } else {
+                    textValue.value = textValue.value.replace(select.toString(), `<${tag} src="${url}" alt=""/>`);
+                }
             }
         }
         function addParagraph() {
@@ -74,16 +90,38 @@ export default defineComponent({
                 textBeforeList.push(textValue.value);
             }
         }
+
+        function addImage(){
+            const url:string | null = prompt('Добавьте ссылку на изображение');
+            if (url) markupText('img', url)
+        }
+
+        async function copyHTML() {
+            const select = document.getSelection();
+            if(select !== null){
+                try {
+                    await navigator.clipboard.writeText(select.toString());
+                    copyAlert.value = true;
+                    setTimeout(() => copyAlert.value = false, 2000)
+                } catch(err) {
+                    return
+                }
+            }
+        }
+
         return{
             textValue,
             textBefore,
             textNext,
+            copyAlert,
             goBack,
             goNext,
             addParagraph,
             addTitle,
             changeText,
-            rememberText
+            rememberText,
+            addImage,
+            copyHTML
         }
     }
 });
@@ -96,22 +134,32 @@ body {
     margin: 50px 0;
     font-family: 'Roboto', Arial, sans-serif;
 }
-
+h1, h2, h3{
+    font-weight: 400;
+}
+h2{
+    margin-top: 46px;
+    margin-bottom: 33px;
+}
 .container {
     max-width: 739px;
     margin-left: auto;
     margin-right: auto;
 }
 .content{
-    margin-top: 50px;
-}
-pre{
-    white-space: pre-wrap;
     margin-top: 31px;
-    font-family: $base-font-family;
 }
 p{
     margin: 0 0 15px;
+}
+img {
+    display: block;
+    max-width: 100%;
+    margin: 31px 0;
+}
+.buttons{
+    display: flex;
+    align-items: center;
 }
 .btn{
     display: inline-block;
@@ -120,13 +168,29 @@ p{
     border: 0;
     margin-right: 12px;
     min-width: 42px;
-    cursor: pointer;
+    font-size: 15px;
+    &:not(:disabled){
+        cursor: pointer;
+    }
     &:disabled{
         opacity: .5;
     }
     &-primary{
         background-color: $bg-secondary;
         color: $color-primary;
+        transition: color $trans-primary, background-color $trans-primary;
+        &:not(:disabled):hover{
+            background-color: $color-primary;
+            color: $bg-primary;
+        }
+    }
+    &-link{
+        background-color: transparent;
+        color: $color-primary;
+        transition: color $trans-primary;
+        &:hover{
+            color: $color-secondary;
+        }
     }
 }
 </style>
