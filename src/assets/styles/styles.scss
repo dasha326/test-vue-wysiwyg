@@ -1,0 +1,17 @@
+@mixin font-face($ff, $path, $fs, $fw, $formats: woff2 woff) {
+  $src: null;
+  @each $format in $formats {
+    $src: append($src, url('../fonts/' + quote($path) + "." + $format) format(quote($format)), comma);
+  }
+
+  @font-face {
+    font-family: $ff;
+    src: $src;
+    font-style: $fs;
+    font-weight: $fw;
+    font-display: swap;
+  }
+}
+
+@include font-face('Roboto', 'roboto/roboto-regular', normal, 400);
+@include font-face('Roboto', 'roboto/roboto-bold', normal, 700);
