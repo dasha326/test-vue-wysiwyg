@@ -2,25 +2,26 @@
     <main>
         <div class="container">
             <div class="buttons">
-                <button class="btn btn-primary" @click="goBack" :disabled="textBefore.length === 0">
+                <button class="btn btn-primary" @click="goBack" :disabled="textBefore.length === 0" aria-label="Кнопка назад" title="Назад">
                     <SvgIcon name="arrow-left"/>
                 </button>
-                <button class="btn btn-primary" @click="goNext" :disabled="textNext.length === 0">
+                <button class="btn btn-primary" @click="goNext" :disabled="textNext.length === 0" aria-label="Кнопка вперед" title="Вперед">
                     <SvgIcon name="arrow-right"/>
                 </button>
-                <button class="btn btn-primary" @click="addTitle">
+                <button class="btn btn-primary" @click="addTitle" aria-label="Кнопка создания заголовока" title="Создать заголовок">
                     <SvgIcon name="t"/>
                 </button>
-                <button class="btn btn-primary" @click="addParagraph">
+                <button class="btn btn-primary" @click="addParagraph" aria-label="Кнопка создания параграфа" title="Создать параграф">
                     <SvgIcon name="tt"/>
                 </button>
-                <button class="btn btn-primary" @click="addImage">
+                <button class="btn btn-primary" @click="addImage" aria-label="Кнопка добавлении картинки" title="Добавить картинку">
                     <SvgIcon name="img"/>
                 </button>
-                <button class="btn btn-link" @click="copyHTML">Скопировать HTML</button>
+                <button class="btn btn-link" @click="copyHTML" aria-label="Кнопка копирования в буфер обмена" title="Скопировать в буфер обмена">Скопировать HTML</button>
             </div>
             <div class="content" contenteditable="true" v-html="textValue" @blur="changeText($event.target)" @focus="rememberText"/>
             <TextAlert v-if="copyAlert" text="Текст успешно скопирован"/>
+            <TextAlert v-if="selectAlert" text="Выделите больше символов для добавления тега"/>
         </div>
     </main>
 </template>
@@ -36,6 +37,8 @@ export default defineComponent({
     components: {SvgIcon, TextAlert},
     setup(){
         const copyAlert = ref<boolean>(false);
+        const selectAlert = ref<boolean>(false);
+
         const textValue = ref<string>(text);
         const textBefore = ref<string[]>([]);
         const textBeforeList = textBefore.value;
@@ -55,22 +58,20 @@ export default defineComponent({
             textNextList.pop();
         }
 
-        function markupText(tag: string, url?:string) {
+        function markupText(tag: string) {
             const select = window.getSelection();
             if(select !== null) {
-                if(
-                    (select.toString().length > 0) &&
-                    (tag !== 'img')
-                ) {
+                if(select.toString().length > 2) {
                     const parentTag = select.getRangeAt(0).startContainer.parentElement?.tagName;
                     if(parentTag && parentTag !== 'DIV') {
                         const previewTag = parentTag.toLowerCase();
-                        textValue.value = textValue.value.replace(select.toString(), `</${previewTag}><${tag}>${select.toString()}</${tag}><${previewTag}>`);
+                        textValue.value = textValue.value.replace(select.toString(),`</${previewTag}><${tag}>${select.toString()}</${tag}><${previewTag}>`);
                     } else {
                         textValue.value = textValue.value.replace(select.toString(), `<${tag}>${select.toString()}</${tag}>`);
                     }
                 } else {
-                    textValue.value = textValue.value.replace(select.toString(), `<${tag} src="${url}" alt=""/>`);
+                    selectAlert.value = true;
+                    setTimeout(() => selectAlert.value = false, 2000)
                 }
             }
         }
@@ -93,14 +94,20 @@ export default defineComponent({
 
         function addImage(){
             const url:string | null = prompt('Добавьте ссылку на изображение');
-            if (url) markupText('img', url)
+            const select = window.getSelection();
+            if (url && select) {
+                let image = document.createElement('img');
+                image.src = url;
+                select.getRangeAt(0).insertNode(image);
+            }
         }
 
         async function copyHTML() {
             const select = document.getSelection();
             if(select !== null){
+                const copyText = select.toString().length > 0 ? select.toString() : textValue.value;
                 try {
-                    await navigator.clipboard.writeText(select.toString());
+                    await navigator.clipboard.writeText(copyText);
                     copyAlert.value = true;
                     setTimeout(() => copyAlert.value = false, 2000)
                 } catch(err) {
@@ -114,6 +121,7 @@ export default defineComponent({
             textBefore,
             textNext,
             copyAlert,
+            selectAlert,
             goBack,
             goNext,
             addParagraph,
