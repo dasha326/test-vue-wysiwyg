@@ -14,3 +14,69 @@
 }
 
 @include font-face('Roboto', 'roboto/roboto-regular', normal, 400);
+
+body {
+  background-color: $bg-primary;
+  color: $color-secondary;
+  margin: 50px 0;
+  font-family: 'Roboto', Arial, sans-serif;
+}
+h1, h2, h3{
+  font-weight: 400;
+}
+h2{
+  margin-top: 46px;
+  margin-bottom: 33px;
+}
+.container {
+  max-width: 739px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.content{
+  margin-top: 31px;
+}
+p{
+  margin: 0 0 15px;
+}
+img {
+  display: block;
+  max-width: 100%;
+  margin: 31px 0;
+}
+.buttons{
+  display: flex;
+  align-items: center;
+}
+.btn{
+  display: inline-block;
+  border-radius: $border-radius;
+  padding: 10px;
+  border: 0;
+  margin-right: 12px;
+  min-width: 42px;
+  font-size: 15px;
+  &:not(:disabled){
+    cursor: pointer;
+  }
+  &:disabled{
+    opacity: .5;
+  }
+  &-primary{
+    background-color: $bg-secondary;
+    color: $color-primary;
+    transition: color $trans-primary, background-color $trans-primary;
+    &:not(:disabled):hover{
+      background-color: $color-primary;
+      color: $bg-primary;
+    }
+  }
+  &-link{
+    background-color: transparent;
+    color: $color-primary;
+    transition: color $trans-primary;
+    &:hover{
+      color: $color-secondary;
+    }
+  }
+}
